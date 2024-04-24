@@ -61,6 +61,7 @@ def cadastrar_funcionario():
     funcionario = {"nome": nome_funcionario,"Cargo":cargo, "Data de contratação": data_contrata, "Salário": salario, "Setor": setor, "tempo_empresa": tempo_empresa}
     print(f"\nOficina cadastrada com sucesso!\n{funcionario}")
 
+# Função para gerenciar estoque
 def gerenciar_estoque():
     print("\nGerenciamento de Estoque de Peças\n")
     nome_peca = input("Nome da peça: ")
@@ -70,9 +71,31 @@ def gerenciar_estoque():
     estoque = {"Nome da Peça": nome_peca, "Quantidade Disponível": quant, "Preço Unitário": preco, "Fornecedor": fornecedor}
     print(f"\nEstoque de peças atualizado com sucesso!\n{estoque}")
 
+# Função para agendar manunteção
+def agendar_manutencao():
 
+    # Solicitação da placa com um loop
+    while True:
+        placa = input("Placa do veículo: ")
+        if len(placa) == 7:
+            break
+        else:
+            print("Placa deve conter 7 caracteres.")
 
-# Função de menu
+    print("\nAgendamento de Serviço de Manutenção\n")
+    data = input("Data do serviço: ")
+    horario = input("Horário do serviço: ")
+    cliente = input("CPF: ")
+    descricao_servico = input("Descrição do serviço: ")
+    
+    print("Serviço de manutenção agendado com sucesso!")
+    print("Data:", data)
+    print("Horário:", horario)
+    print("Cliente:", cliente)
+    print("Veículo:", placa)
+    print("Descrição do serviço:", descricao_servico)
+
+# Função Menu
 def menu():
     while True:
         print("\n╭──────────────────────────────────╮")
@@ -89,7 +112,7 @@ def menu():
         print("╰──────────────────────────────────╯")
 
         opcao = input("Digite sua opção: ")
-
+        # Escohla do Usuário
         if opcao == "1":
             cadastrar_cliente()
         elif opcao == "2":
@@ -97,9 +120,9 @@ def menu():
         elif opcao == "3":
             cadastrar_oficina()
         elif opcao == "4":
-            cadastrar_funcionario
+            cadastrar_funcionario()
         elif opcao == "5":
-            gerenciar_estoque()
+            agendar_manutencao()
         elif opcao == "6":
             print("Saindo do programa...")
             break
