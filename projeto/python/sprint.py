@@ -1,3 +1,4 @@
+
 # Função para cadastro de Clientes
 def cadastrar_cliente():
     print("\nCadastro de Clientes\n")
@@ -75,7 +76,7 @@ def gerenciar_estoque():
 def menu():
     while True:
         print("\n╭──────────────────────────────────╮")
-        print("│   PortoConnect Car Atendimento   │")
+        print("│   SmartConnect Car Atendimento   │")
         print("├──────────────────────────────────┤")
         print("│          Menu Principal          │")
         print("├──────────────────────────────────┤")
