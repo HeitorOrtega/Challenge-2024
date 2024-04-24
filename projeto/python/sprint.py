@@ -1,4 +1,3 @@
-
 # Função para cadastro de Clientes
 def cadastrar_cliente():
     print("\nCadastro de Clientes\n")
