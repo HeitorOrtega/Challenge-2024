@@ -1,4 +1,6 @@
-# Função para cadastro de Clientes
+# Dicionário simulando um banco de dados de clientes
+clientes = {}
+
 def cadastrar_cliente():
     print("\nCadastro de Clientes\n")
 
@@ -14,10 +16,17 @@ def cadastrar_cliente():
     nome = input("Nome: ")
     email = input("Email: ")
     idade = int(input("Idade: "))
-    telefone = int(input("Telefone: "))
-    
-    # Criação do dicionário 
-    cliente = {"Nome": nome, "Email": email, "Idade": idade, "CPF": cpf, "Telefone": telefone}
+    telefone = input("Telefone: ")
+    nome_usuario = input("Insira um usuário que iremos chamar: ")
+    senha = input("Insira uma senha forte: ")
+    senha_confirmada = input("Insira novamente sua senha: ")
+
+    # Criação do dicionário de cliente
+    cliente = {"Nome": nome, "Email": email, "Idade": idade, "CPF": cpf, "Telefone": telefone, "Senha": senha, "Confirmação": senha_confirmada, "Usuário": nome_usuario}
+
+    # Adicionando o cliente ao dicionário de clientes
+    clientes[nome_usuario] = cliente
+
     print(f"\nCliente cadastrado com sucesso!\n{cliente}")
 
 # Função para cadastro de veículos
@@ -32,7 +41,7 @@ def cadastrar_veiculo():
             break
         else:
             print("Placa deve conter 7 caracteres.")
-            
+
     # Solicitação das informações do carro do cliente
     cor = input("Cor do veículo: ")
     veiculo = {"Modelo": modelo, "Placa": placa, "Cor": cor}
@@ -70,8 +79,11 @@ def gerenciar_estoque():
     estoque = {"Nome da Peça": nome_peca, "Quantidade Disponível": quant, "Preço Unitário": preco, "Fornecedor": fornecedor}
     print(f"\nEstoque de peças atualizado com sucesso!\n{estoque}")
 
+
 # Função para agendar manunteção
 def agendar_manutencao():
+
+    print("\nAgendamento de Serviço de Manutenção\n")
 
     # Solicitação da placa com um loop
     while True:
@@ -81,18 +93,31 @@ def agendar_manutencao():
         else:
             print("Placa deve conter 7 caracteres.")
 
-    print("\nAgendamento de Serviço de Manutenção\n")
     data = input("Data do serviço: ")
     horario = input("Horário do serviço: ")
     cliente = input("CPF: ")
     descricao_servico = input("Descrição do serviço: ")
-    
+
     print("Serviço de manutenção agendado com sucesso!")
     print("Data:", data)
     print("Horário:", horario)
     print("Cliente:", cliente)
     print("Veículo:", placa)
     print("Descrição do serviço:", descricao_servico)
+
+# Função de login
+def login():
+    while True:
+        nome_usuario = input("Insira o seu nome de usuário: ")
+        senha = input("Insira sua senha: ")
+
+        # Verificar se o nome de usuário está no "banco" de clientes
+        if nome_usuario in clientes and clientes[nome_usuario]["Senha"] == senha:
+            print("Login bem-sucedido!")
+            break
+        else:
+            print("Nome de usuário ou senha incorretos. Tente novamente.")
+
 
 # Função Menu
 def menu():
@@ -102,31 +127,33 @@ def menu():
         print("├──────────────────────────────────┤")
         print("│          Menu Principal          │")
         print("├──────────────────────────────────┤")
-        print("│ 1. Cadastrar Clientes            │")
-        print("│ 2. Cadastrar Veículos            │")
-        print("│ 3. Cadastrar Oficinas            │")
-        print("│ 4. Cadastrar Funcionários        │")
-        print("│ 5. Agendar Serviço de Manutenção │")
-        print("│ 6. Sair                          │")
+        print("│ 1. Login                        │")
+        print("│ 2. Cadastrar Clientes            │")
+        print("│ 3. Cadastrar Veículos            │")
+        print("│ 4. Cadastrar Oficinas            │")
+        print("│ 5. Cadastrar Funcionários        │")
+        print("│ 6. Agendar Serviço de Manutenção │")
+        print("│ 7. Sair                          │")
         print("╰──────────────────────────────────╯")
 
         opcao = input("Digite sua opção: ")
-        # Escohla do Usuário
+
         if opcao == "1":
-            cadastrar_cliente()
+            login()
         elif opcao == "2":
-            cadastrar_veiculo()
+            cadastrar_cliente()
         elif opcao == "3":
-            cadastrar_oficina()
+            cadastrar_veiculo()
         elif opcao == "4":
-            cadastrar_funcionario()
+            cadastrar_oficina()
         elif opcao == "5":
-            agendar_manutencao()
+            cadastrar_funcionario()
         elif opcao == "6":
+            agendar_manutencao()
+        elif opcao == "7":
             print("Saindo do programa...")
             break
         else:
             print("Opção inválida. Tente novamente.")
-
 
 menu()
