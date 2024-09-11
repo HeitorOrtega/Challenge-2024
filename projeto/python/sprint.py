@@ -237,8 +237,8 @@ def menu():
         print("│                Menu Principal                  │")
         print("├────────────────────────────────────────────────┤")
         print("│ 1. Login                                       │")
-        print("│ 2. Cadastrar Veiculos                          │")
-        print("│ 3. Cadastrar Clientes                          │")
+        print("│ 2. Cadastrar Clientes                          │")
+        print("│ 3. Cadastrar Veiculos                          │")
         print("│ 4. Cadastrar Oficinas                          │")
         print("│ 5. Cadastrar Funcionários                      │")
         print("│ 6. Gerenciar Estoque                           │")
@@ -254,9 +254,9 @@ def menu():
             case "1":
                 login()
             case "2":
-                cadastrar_veiculo()
-            case "3":
                 cadastrar_cliente()
+            case "3":
+                cadastrar_veiculo()
             case "4":
                 cadastrar_oficina()
             case "5":
