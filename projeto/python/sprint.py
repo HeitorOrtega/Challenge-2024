@@ -1,14 +1,22 @@
+import requests
 import random
 import string
-from crud import *
+import re
+from crud import *  
+from banco import *
 
-# Listas simulando bancos de dados para armazenar os registros do sistema
-clientes = []
-veiculos = []
-oficinas = []
-funcionarios = []
-estoque = []
-servicos_agendados = []
+
+# Função para consultar CEP e obter o endereço
+def consulta_cep(cep):
+    
+    url = f'https://brasilapi.com.br/api/cep/v1/{cep}'
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
+
 
 # Função para gerar uma senha forte
 def gerar_sugestao_senha():
@@ -21,20 +29,55 @@ def exibir_subtitulos(texto):
     print(texto)
     print()
 
+# Validação de email
+def validar_email(email):
+    return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
+
+# Validação de telefone
+def validar_telefone(telefone):
+    return len(telefone) >= 10 and telefone.isdigit()
+
+# Validação de idade
+def validar_idade(idade):
+    return 0 <= idade <= 120
+
+# Validação de senha
+def validar_senha(senha):
+    return (len(senha) >= 8 and 
+            any(char.isdigit() for char in senha) and 
+            any(char.isupper() for char in senha) and 
+            any(char in string.punctuation for char in senha))
+
+# Validação de CPF
+def validar_cpf(cpf):
+    return len(cpf) == 11 and cpf.isdigit()
+
+# Validação de placa
+def validar_placa(placa):
+    return re.match(r"^[A-Z]{3}-\d{4}$", placa) is not None
+
 # Função para login
 def login():
     exibir_subtitulos("\n🔒 **Login**\n")
-    while True:
-        usuario = input("Digite seu nome de usuário: ")
-        senha = input("Digite sua senha: ")
+    usuario = input("Digite seu nome de usuário: ")
+    senha = input("Digite sua senha: ")
 
-        # Verifica se o usuário e a senha correspondem a algum cliente cadastrado
-        for cliente in clientes:
-            if cliente["Usuário"] == usuario and cliente["Senha"] == senha:
-                exibir_subtitulos(f"Bem-vindo, {cliente['Nome']}!")
-                return True
+    # Consultar clientes no banco de dados para verificar login
+    connection = conexao()
+    cur = connection.cursor()
 
-        exibir_subtitulos("⚠️ Usuário ou senha inválidos. Tente novamente.")
+    cur.execute("SELECT nome, senha FROM CLIENTES WHERE nome_usuario = :1", (usuario,))
+    resultado = cur.fetchone()
+
+    cur.close()
+    connection.close()
+
+    if resultado and resultado[1] == senha:
+        exibir_subtitulos(f"Bem-vindo, {resultado[0]}!")
+        return True
+    else:
+        exibir_subtitulos("⚠️ Usuário ou senha inválidos.")
+        return False
 
 # Função para cadastrar clientes
 def cadastrar_cliente():
@@ -43,8 +86,8 @@ def cadastrar_cliente():
     while True:
         try:
             cpf = input("Digite o CPF do cliente (11 dígitos): ")
-            if len(cpf) != 11:
-                exibir_subtitulos("⚠️ O CPF deve ter exatamente 11 dígitos.")
+            if not validar_cpf(cpf):
+                exibir_subtitulos("⚠️ O CPF deve ter exatamente 11 dígitos numéricos.")
                 continue
             
             if any(cliente['CPF'] == cpf for cliente in clientes):
@@ -53,8 +96,20 @@ def cadastrar_cliente():
 
             nome = input("Nome completo: ")
             email = input("Email: ")
+            if not validar_email(email):
+                exibir_subtitulos("⚠️ Email inválido. Tente novamente.")
+                continue
+
             idade = int(input("Idade: "))
+            if not validar_idade(idade):
+                exibir_subtitulos("⚠️ Idade inválida. Deve estar entre 0 e 120 anos.")
+                continue
+
             telefone = input("Número de telefone: ")
+            if not validar_telefone(telefone):
+                exibir_subtitulos("⚠️ Telefone inválido. Deve ter pelo menos 10 dígitos.")
+                continue
+            
             nome_usuario = input("Escolha um nome de usuário: ")
 
             if any(cliente['Usuário'] == nome_usuario for cliente in clientes):
@@ -68,37 +123,33 @@ def cadastrar_cliente():
                 print(f"Sugestão de senha: {senha}")
             senha_confirmada = input("Confirme a senha: ")
 
+            if not validar_senha(senha):
+                exibir_subtitulos("⚠️ A senha deve ter pelo menos 8 caracteres, incluindo letras maiúsculas, números e caracteres especiais.")
+                continue
+            
             if senha != senha_confirmada:
                 exibir_subtitulos("⚠️ As senhas não coincidem.")
                 continue
 
-            cliente = {
-                "Nome": nome, 
-                "Email": email, 
-                "Idade": idade, 
-                "CPF": cpf, 
-                "Telefone": telefone, 
-                "Usuário": nome_usuario, 
-                "Senha": senha
-            }
-            clientes.append(cliente)
-            exibir_subtitulos(f"\n🎉 Cliente cadastrado com sucesso!\n{cliente}")
+            inserir_cliente(nome_usuario, nome, email, idade, cpf, telefone, senha)
+            exibir_subtitulos(f"\n🎉 Cliente cadastrado com sucesso!\n")
+
             break
         except ValueError as ve:
             exibir_subtitulos(f"⚠️ Erro: {ve}")
         except Exception as e:
             exibir_subtitulos(f"⚠️ Ocorreu um erro inesperado: {e}")
 
-# Função para cadastrar veículos
+# Função para cadastrar veículos usando a função CRUD
 def cadastrar_veiculo():
     exibir_subtitulos("\n🚗 **Cadastro de Veículos**\n")
     try:
         modelo = input("Modelo do veículo: ")
 
         while True:
-            placa = input("Placa do veículo (7 caracteres): ")
-            if len(placa) != 7:
-                exibir_subtitulos("⚠️ A placa deve ter exatamente 7 caracteres.")
+            placa = input("Placa do veículo (formato: AAA-0000): ")
+            if not validar_placa(placa):
+                exibir_subtitulos("⚠️ A placa deve estar no formato AAA-0000.")
                 continue
             elif any(veiculo['Placa'] == placa for veiculo in veiculos):
                 exibir_subtitulos("⚠️ Esta placa já está cadastrada.")
@@ -113,19 +164,32 @@ def cadastrar_veiculo():
     except Exception as e:
         exibir_subtitulos(f"⚠️ Ocorreu um erro inesperado: {e}")
 
-# Função para cadastrar oficinas
+# Função para cadastrar oficinas usando a função CRUD
 def cadastrar_oficina():
     exibir_subtitulos("\n🔧 **Cadastro de Oficinas**\n")
-    try:
+    
+    while True:
         cep = input("CEP: ")
-        endereco = input("Endereço completo: ")
+        endereco_info = consulta_cep(cep)
+        if endereco_info:
+            endereco = f"{endereco_info['street']}, {endereco_info['neighborhood']}, {endereco_info['city']} - {endereco_info['state']}"
+            print(f"Endereço encontrado: {endereco}")
+            break 
+        else:
+            print("⚠️ CEP inválido ou não encontrado. Por favor, insira o CEP novamente.")
+    
+    try:
         nome_oficina = input("Nome da Oficina: ")
         telefone_oficina = input("Número de telefone: ")
 
+        if not validar_telefone(telefone_oficina):
+            exibir_subtitulos("⚠️ Telefone inválido. Deve ter pelo menos 10 dígitos.")
+            return
+
         oficina = {
-            "CEP": cep, 
-            "Endereço": endereco, 
-            "Nome da Oficina": nome_oficina, 
+            "CEP": cep,
+            "Endereço": endereco,
+            "Nome da Oficina": nome_oficina,
             "Telefone": telefone_oficina
         }
         oficinas.append(oficina)
@@ -133,7 +197,8 @@ def cadastrar_oficina():
     except Exception as e:
         exibir_subtitulos(f"⚠️ Ocorreu um erro inesperado: {e}")
 
-# Função para cadastrar funcionários
+
+# Função para cadastrar funcionários usando a função CRUD
 def cadastrar_funcionario():
     exibir_subtitulos("\n👨‍💼 **Cadastro de Funcionários**\n")
     try:
@@ -159,120 +224,111 @@ def cadastrar_funcionario():
     except Exception as e:
         exibir_subtitulos(f"⚠️ Ocorreu um erro inesperado: {e}")
 
-# Função para gerenciar o estoque de peças
+# Função para gerenciar o estoque de peças usando a função CRUD
 def gerenciar_estoque():
-    exibir_subtitulos("\n🛠️ **Gerenciamento de Estoque de Peças**\n")
-    try:
-        nome_peca = input("Nome da peça: ")
-        quant = int(input("Quantidade disponível: "))
-        preco = float(input("Preço unitário (R$): "))
-        fornecedor = input("Fornecedor: ")
+    exibir_subtitulos("\n📦 **Gerenciamento de Estoque**\n")
+    while True:
+        print("1. Adicionar peça")
+        print("2. Remover peça")
+        print("3. Listar peças")
+        print("4. Voltar ao menu principal")
+        opcao = input("Escolha uma opção: ")
 
-        peca = {
-            "Nome da Peça": nome_peca,
-            "Quantidade Disponível": quant,
-            "Preço Unitário": preco,
-            "Fornecedor": fornecedor
-        }
-        estoque.append(peca)
-        exibir_subtitulos(f"\n🎉 Estoque de peças atualizado com sucesso!\n{peca}")
-    except ValueError as ve:
-        exibir_subtitulos(f"⚠️ Erro de valor: {ve}")
-    except Exception as e:
-        exibir_subtitulos(f"⚠️ Ocorreu um erro inesperado: {e}")
+        if opcao == "1":
+            try:
+                nome_peca = input("Nome da peça: ")
+                quantidade = int(input("Quantidade: "))
+                preco = float(input("Preço unitário (R$): "))
+                peca = {"Nome": nome_peca, "Quantidade": quantidade, "Preço": preco}
+                estoque.append(peca)
+                exibir_subtitulos(f"\n🎉 Peça adicionada ao estoque com sucesso!\n{peca}")
+            except ValueError as ve:
+                exibir_subtitulos(f"⚠️ Erro de valor: {ve}")
 
-# Função para agendar serviços de manutenção
-def agendar_manutencao():
-    exibir_subtitulos("\n🗓️ **Agendamento de Serviço de Manutenção**\n")
-    try:
-        while True:
-            placa = input("Placa do veículo (7 caracteres): ")
-            if len(placa) != 7:
-                exibir_subtitulos("⚠️ A placa deve ter exatamente 7 caracteres.")
-                continue
-            elif not any(veiculo['Placa'] == placa for veiculo in veiculos):
-                exibir_subtitulos("⚠️ Veículo não encontrado. Verifique a placa e tente novamente.")
-                continue
+        elif opcao == "2":
+            try:
+                nome_peca = input("Nome da peça para remover: ")
+                for peca in estoque:
+                    if peca["Nome"].lower() == nome_peca.lower():
+                        estoque.remove(peca)
+                        exibir_subtitulos(f"\n🗑️ Peça removida do estoque com sucesso!\n{peca}")
+                        break
+                else:
+                    exibir_subtitulos("⚠️ Peça não encontrada.")
+            except Exception as e:
+                exibir_subtitulos(f"⚠️ Ocorreu um erro inesperado: {e}")
+
+        elif opcao == "3":
+            if estoque:
+                exibir_subtitulos("📦 Lista de Peças em Estoque:")
+                for peca in estoque:
+                    print(f"- {peca['Nome']} (Quantidade: {peca['Quantidade']}, Preço: R$ {peca['Preço']})")
             else:
-                break
+                exibir_subtitulos("⚠️ Não há peças no estoque.")
 
-        data = input("Data do serviço (DD/MM/AAAA): ")
-        horario = input("Horário do serviço: ")
-        cpf = input("CPF do cliente: ")
+        elif opcao == "4":
+            break
 
-        if not any(cliente['CPF'] == cpf for cliente in clientes):
-            exibir_subtitulos("⚠️ CPF do cliente não encontrado. Verifique e tente novamente.")
-            return
+        else:
+            exibir_subtitulos("⚠️ Opção inválida. Tente novamente.")
 
+# Função para agendar serviços
+def agendar_servico():
+    exibir_subtitulos("\n📅 **Agendar Serviços**\n")
+    try:
+        cliente_nome = input("Nome do cliente: ")
+        veiculo_modelo = input("Modelo do veículo: ")
+        data_servico = input("Data do serviço (DD/MM/AAAA): ")
         descricao_servico = input("Descrição do serviço: ")
 
         servico = {
-            "Data": data,
-            "Horário": horario,
-            "CPF": cpf,
-            "Placa": placa,
-            "Descrição do Serviço": descricao_servico
+            "Cliente": cliente_nome,
+            "Veículo": veiculo_modelo,
+            "Data": data_servico,
+            "Descrição": descricao_servico
         }
         servicos_agendados.append(servico)
-        exibir_subtitulos(f"\n🎉 Serviço de manutenção agendado com sucesso!\n{servico}")
-    except ValueError as ve:
-        exibir_subtitulos(f"⚠️ Erro: {ve}")
+        exibir_subtitulos(f"\n🎉 Serviço agendado com sucesso!\n{servico}")
     except Exception as e:
         exibir_subtitulos(f"⚠️ Ocorreu um erro inesperado: {e}")
 
-# Função para mostrar serviços agendados
-def mostrar_servicos_agendados():
-    exibir_subtitulos("\n📅 **Serviços Agendados**\n")
-    if not servicos_agendados:
-        exibir_subtitulos("Não há serviços agendados.")
-    for servico in servicos_agendados:
-        print(servico)
-
-# Função para exibir o menu principal com as opções de CRUD e outras funcionalidades
-def menu():
+# Função principal do menu
+def main():
     while True:
-        print("\n╭────────────────────────────────────────────────╮")
-        print("│           SmartConnect Car Atendimento         │")
-        print("├────────────────────────────────────────────────┤")
-        print("│                Menu Principal                  │")
-        print("├────────────────────────────────────────────────┤")
-        print("│ 1. Login                                       │")
-        print("│ 2. Cadastrar Clientes                          │")
-        print("│ 3. Cadastrar Veiculos                          │")
-        print("│ 4. Cadastrar Oficinas                          │")
-        print("│ 5. Cadastrar Funcionários                      │")
-        print("│ 6. Gerenciar Estoque                           │")
-        print("│ 7. Agendar Serviço de Manutenção               │")
-        print("│ 8. Mostrar Serviços Agendados                  │")
-        print("│ 0. Sair                                        │")
-        print("╰────────────────────────────────────────────────╯")
+        print("\n🌟 **Menu Principal** 🌟")
+        print("=" * 30)
+        print("1. Login")
+        print("2. Cadastro de Clientes")
+        print("3. Cadastro de Veículos")
+        print("4. Cadastro de Oficinas")
+        print("5. Cadastro de Funcionários")
+        print("6. Gerenciar Estoque")
+        print("7. Agendar Serviços")
+        print("8. Sair")
+        print("=" * 30)
+        
+        opcao = input("Escolha uma opção: ")
 
-        opcao = input("Escolha uma opção (1-9): ")
-
-        match opcao:
-
-            case "1":
-                login()
-            case "2":
-                cadastrar_cliente()
-            case "3":
-                cadastrar_veiculo()
-            case "4":
-                cadastrar_oficina()
-            case "5":
-                cadastrar_funcionario()
-            case "6":
-                gerenciar_estoque()
-            case "7":
-                agendar_manutencao()
-            case "8":
-                mostrar_servicos_agendados()
-            case  "0":
-                print("👋 Saindo do sistema. Até a próxima!")
-                break
-            case _ :
-                print("⚠️ Opção inválida. Por favor, escolha um número entre 1 e 9.")
-
+        if opcao == "1":
+            login()
+        elif opcao == "2":
+            cadastrar_cliente()
+        elif opcao == "3":
+            cadastrar_veiculo()
+        elif opcao == "4":
+            cadastrar_oficina()
+        elif opcao == "5":
+            cadastrar_funcionario()
+        elif opcao == "6":
+            gerenciar_estoque()
+        elif opcao == "7":
+            agendar_servico()
+        elif opcao == "8":
+            print("👋 Até logo!")
+            break
+        else:
+            print("⚠️ Opção inválida. Tente novamente.")
 
 if __name__ == "__main__":
-    menu()
+    main()
+
