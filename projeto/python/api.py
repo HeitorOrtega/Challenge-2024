@@ -16,8 +16,6 @@ def carro(peca,modelo,ano):
     model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
     generation_config=generation_config,
-    # safety_settings = Adjust safety settings
-    # See https://ai.google.dev/gemini-api/docs/safety-settings
     system_instruction='''Você agora é um mecanico na qual seu papel é dizer 2 problemas diferetens que o carro 
     possivelmente possa ter atravès da peça do carro, modelo , ano, trazer soluções diferentes desses 2 problemas e o custo das peças para solucionar o problema. O retorno desta solicitação deverá ser 
                         necessariamente no formato JSON 
