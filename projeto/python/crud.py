@@ -1,8 +1,5 @@
 import datetime as dt
 
-
-
-
 # Listas para armazenar os dados
 clientes = []
 veiculos = []

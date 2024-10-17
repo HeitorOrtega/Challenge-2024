@@ -1,5 +1,8 @@
 import cx_Oracle
 import datetime as dt
+import json
+
+
 
 # Conexão com o banco de dados
 def conexao():
@@ -37,22 +40,61 @@ def menu_gerenciamento():
         print("2. Alterar Dados")
         print("3. Excluir Dados")
         print("4. Consultar Dados")
-        print("5. Voltar ao Menu Principal")
+        print("5. Exportar Dados para JSON")
+        print("6. Voltar ao Menu Principal")
         opcao = input("Escolha uma opção: ")
 
         if opcao == '1':
-            inserir_dados()
+            inserir_cliente()
         elif opcao == '2':
-            alterar_dados()
+            alterar_cliente()
         elif opcao == '3':
-            excluir_dados()
+            excluir_cliente()
         elif opcao == '4':
-            consultar_dados()
+            consultar_clientes()
         elif opcao == '5':
+            exportar_dados_para_json()
+        elif opcao == '6':
             break
         else:
             print("Opção inválida! Tente novamente.")
 
+def exportar_dados_para_json():
+    tabela = input("Digite o nome da tabela que deseja exportar (CLIENTES, OFICINAS, etc.): ")
+    arquivo_json = input("Digite o nome do arquivo JSON para exportação (ex: dados.json): ")
+
+    exportar_para_json(tabela, arquivo_json)
+
+def exportar_para_json(tabela, arquivo_json):
+    connection = conexao()
+    cur = connection.cursor()
+
+    try:
+        cur.execute(f"SELECT * FROM {tabela}")
+        resultados = cur.fetchall()
+
+        # Obtendo os nomes das colunas
+        colunas = [col[0] for col in cur.description]
+
+        # Criando uma lista de dicionários para exportação
+        dados_list = []
+        for row in resultados:
+            dados_dict = dict(zip(colunas, row))
+            dados_list.append(dados_dict)
+
+        # Exportando para um arquivo JSON
+        with open(arquivo_json, 'w') as json_file:
+            json.dump(dados_list, json_file, indent=4)
+
+        print(f"Dados exportados para {arquivo_json} com sucesso!")
+
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao exportar os dados para JSON: {e}")
+    except Exception as e:
+        print(f"Erro: {e}")
+    finally:
+        cur.close()
+        connection.close()
 # Funções CRUD para clientes
 def inserir_cliente():
     connection = conexao()

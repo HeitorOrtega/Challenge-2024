@@ -3,7 +3,7 @@ import random
 import string
 import re
 from crud import *  
-
+from banco import*
 
 # Função para consultar CEP e obter o endereço
 def consulta_cep(cep):
