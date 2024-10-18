@@ -4,6 +4,7 @@ import string
 import re
 from crud import *  
 from banco import*
+from api import *
 
 # Função para consultar CEP e obter o endereço
 def consulta_cep(cep):
@@ -65,18 +66,25 @@ def login():
     connection = conexao()
     cur = connection.cursor()
 
-    cur.execute("SELECT nome, senha FROM CLIENTES WHERE nome_usuario = :1", (usuario,))
-    resultado = cur.fetchone()
+    try:
+        cur.execute("SELECT nome, senha FROM CLIENTES WHERE nome_usuario = :1", (usuario,))
+        resultado = cur.fetchone()
 
-    cur.close()
-    connection.close()
+        if resultado and resultado[1] == senha:
+            exibir_subtitulos(f"Bem-vindo, {resultado[0]}!")
+            return True
+        else:
+            exibir_subtitulos("⚠️ Usuário ou senha inválidos.")
+            return False
 
-    if resultado and resultado[1] == senha:
-        exibir_subtitulos(f"Bem-vindo, {resultado[0]}!")
-        return True
-    else:
-        exibir_subtitulos("⚠️ Usuário ou senha inválidos.")
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao consultar o banco de dados: {e}")
         return False
+
+    finally:
+        cur.close()  
+        connection.close()
+
 
 # Função para cadastrar clientes
 def cadastrar_cliente():
@@ -303,7 +311,8 @@ def main():
         print("5. Cadastro de Funcionários")
         print("6. Gerenciar Estoque")
         print("7. Agendar Serviços")
-        print("8. Sair")
+        print("8. Mecânico Virtual")  
+        print("9. Sair")
         print("=" * 30)
         
         opcao = input("Escolha uma opção: ")
@@ -323,6 +332,8 @@ def main():
         elif opcao == "7":
             agendar_servico()
         elif opcao == "8":
+            mecanico()  # Chama a função do mecânico virtual
+        elif opcao == "9":
             print("👋 Até logo!")
             break
         else:
@@ -330,4 +341,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -1,7 +1,7 @@
 import cx_Oracle
 import datetime as dt
 import json
-
+from crud import * 
 
 
 # Conexão com o banco de dados
@@ -45,7 +45,7 @@ def menu_gerenciamento():
         opcao = input("Escolha uma opção: ")
 
         if opcao == '1':
-            inserir_cliente()
+           inserir_dados()
         elif opcao == '2':
             alterar_cliente()
         elif opcao == '3':
@@ -95,37 +95,53 @@ def exportar_para_json(tabela, arquivo_json):
     finally:
         cur.close()
         connection.close()
+
 # Funções CRUD para clientes
-def inserir_cliente():
+def inserir_cliente(id_cliente, nome_usuario, nome, email, idade, cpf, telefone, senha):
     connection = conexao()
     cur = connection.cursor()
 
-    nome_usuario = input("Digite o nome de usuário: ")
-    nome = input("Digite o nome: ")
-    email = input("Digite o email: ")
-    idade = input("Digite a idade: ")
-    cpf = input("Digite o CPF: ")
-    telefone = input("Digite o telefone: ")
-    senha = input("Digite a senha: ")
+    try:
+        cur.execute(
+            "INSERT INTO clientes (id_cliente, nome_usuario, nome, email, idade, cpf, telefone, senha) "
+            "VALUES (:1, :2, :3, :4, :5, :6, :7, :8)", 
+            (id_cliente, nome_usuario, nome, email, idade, cpf, telefone, senha)
+        )
+        connection.commit()
+        print("Cliente inserido com sucesso!")
 
-    cur.execute("INSERT INTO CLIENTES (nome_usuario, nome, email, idade, cpf, telefone, senha, data_cadastro) "
-                "VALUES (:1, :2, :3, :4, :5, :6, :7, :8)", 
-                (nome_usuario, nome, email, idade, cpf, telefone, senha, dt.datetime.now()))
-    connection.commit()
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao inserir cliente: {e}")
+        connection.rollback() 
 
-    print("Cliente inserido com sucesso!")
+    finally:
+        cur.close()  
+        connection.close() 
 
-    cur.close()
-    connection.close()
+    return True
+
 
 def alterar_cliente():
     connection = conexao()
     cur = connection.cursor()
 
     try:
-        # Garantindo que o ID do cliente seja um número inteiro
-        id_cliente = int(input("Digite o ID do cliente a ser alterado: "))
+        # Pergunta o ID do cliente que será alterado
+        id_cliente = input("Digite o ID do cliente a ser alterado: ")
 
+        # Verifica se o cliente com o ID existe
+        cur.execute("SELECT * FROM CLIENTES WHERE id = :1", (id_cliente,))
+        resultado = cur.fetchone()
+
+        if not resultado:
+            print("Cliente com o ID especificado não encontrado.")
+            return
+
+        # Exibir dados atuais do cliente
+        print("Cliente encontrado:")
+        print(f"ID: {resultado[0]}, Nome: {resultado[1]}, Email: {resultado[2]}, Idade: {resultado[3]}, CPF: {resultado[4]}, Telefone: {resultado[5]}")
+
+        # Exibir opções de campos para alterar
         print("Selecione o que deseja alterar:")
         print("1. Nome")
         print("2. Email")
@@ -163,6 +179,7 @@ def alterar_cliente():
             print("Opção inválida! Tente novamente.")
             return
 
+        # Confirma a alteração
         connection.commit()
         print("Cliente alterado com sucesso!")
 
@@ -175,32 +192,27 @@ def alterar_cliente():
         connection.close()
 
 
-def excluir_cliente():
+
+
+def excluir_cliente(id_cliente):
     connection = conexao()
     cur = connection.cursor()
 
     try:
-      
-        id_cliente = int(input("Digite o ID do cliente a ser excluído: "))
-        confirmacao = input(f"Você realmente deseja excluir o cliente com ID {id_cliente}? (s/n): ")
-        if confirmacao.lower() != 's':
-            print("Exclusão cancelada.")
-            return
-
-        cur.execute("DELETE FROM CLIENTES WHERE id = :1", (id_cliente,))
+        cur.execute("DELETE FROM clientes WHERE id_cliente = :1", (id_cliente,))
         connection.commit()
 
         if cur.rowcount > 0:
-            print("Cliente excluído com sucesso!")
+            print(f"Cliente com ID {id_cliente} excluído com sucesso!")
         else:
-            print("Nenhum cliente encontrado com esse ID.")
+            print(f"Nenhum cliente encontrado com o ID {id_cliente}.")
 
-    except ValueError:
-        print("Erro: O ID do cliente deve ser um número inteiro.")
     except cx_Oracle.DatabaseError as e:
-        print(f"Erro ao excluir o cliente no banco de dados: {e}")
+        print(f"Erro ao excluir cliente no banco de dados: {e}")
     finally:
         cur.close()
+        connection.close()
+
         connection.close()
 
 
@@ -212,542 +224,635 @@ def consultar_clientes():
         cur.execute("SELECT * FROM CLIENTES")
         resultados = cur.fetchall()
 
-        # Obtendo os nomes das colunas
         colunas = [col[0] for col in cur.description]
-
-        print("\nResultados da Consulta:")
+        print("\nVeículos cadastrados:")
         print(f"{' | '.join(colunas)}")  
-        print("-" * 50)  
+        print("-" * 50)
+        
         for row in resultados:
-            print(f"{' | '.join(map(str, row))}")  
+            print(" | ".join(str(item).ljust(20) for item in row))  
 
     except cx_Oracle.DatabaseError as e:
-        print(f"Erro ao consultar os clientes no banco de dados: {e}")
+        print(f"Erro ao consultar clientes no banco de dados: {e}")
+    
     finally:
-        cur.close()
-        connection.close()
+        cur.close()  
+        connection.close()  
 
 # Funções CRUD para veículos
-def inserir_veiculo():
+def inserir_veiculo(id_veiculo, nome_cliente, modelo, ano, placa, descricao_problema, data_entrada):
     connection = conexao()
     cur = connection.cursor()
 
-   
-    nome_cliente = input("Digite o nome do cliente: ")
-    cur.execute("SELECT id_cliente FROM CLIENTES WHERE nome = :1", (nome_cliente,))
-    id_cliente = cur.fetchone()
+    try:
+        cur.execute(
+            "INSERT INTO veiculos (id_veiculo, nome_cliente, modelo, ano, placa, descricao_problema, data_entrada) "
+            "VALUES (:1, :2, :3, :4, :5, :6, :7)", 
+            (id_veiculo, nome_cliente, modelo, ano, placa, descricao_problema, data_entrada)
+        )
+        connection.commit()
+        print("Veículo inserido com sucesso!")
 
-    # Verificando se o cliente existe no banco de dados
-    if id_cliente is None:
-        print("Cliente não encontrado!")
-        return
-    
-    modelo = input("Digite o modelo do veículo: ")
-    ano = input("Digite o ano do veículo: ")
-    placa = input("Digite a placa do veículo: ")
-    descricao_problema = input("Digite a descrição do problema: ")
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao inserir veículo: {e}")
+        connection.rollback()  
 
-    cur.execute("INSERT INTO VEICULOS (modelo, ano, placa, descricao_problema, data_entrada, id_cliente) "
-                "VALUES (:1, :2, :3, :4, :5, :6)", 
-                (modelo, ano, placa, descricao_problema, dt.datetime.now(), id_cliente[0]))
-    connection.commit()
+    finally:
+        cur.close()  
+        connection.close()  
 
-    print("Veículo inserido com sucesso!")
+    return True
 
-
-    cur.close()
-    connection.close()
 
 def alterar_veiculo():
     connection = conexao()
     cur = connection.cursor()
 
-    id_veiculo = input("Digite o ID do veículo a ser alterado: ")
+    try:
+        # Pergunta o ID do veículo que será alterado
+        id_veiculo = input("Digite o ID do veículo a ser alterado: ")
 
-    # Exibir opções de atributos a serem alterados
-    print("Escolha o que deseja alterar:")
-    print("1. Modelo")
-    print("2. Ano")
-    print("3. Placa")
-    print("4. Descrição do Problema")
+        # Verifica se o veículo com o ID existe
+        cur.execute("SELECT * FROM VEICULOS WHERE id_veiculo = :1", (id_veiculo,))
+        resultado = cur.fetchone()
+
+        if not resultado:
+            print("Veículo com o ID especificado não encontrado.")
+            return
+
+        # Exibir dados atuais do veículo
+        print("Veículo encontrado:")
+        print(f"ID: {resultado[0]}, Modelo: {resultado[1]}, Ano: {resultado[2]}, Placa: {resultado[3]}, Descrição do Problema: {resultado[4]}")
+
+        # Exibir opções de campos para alterar
+        print("Escolha o que deseja alterar:")
+        print("1. Modelo")
+        print("2. Ano")
+        print("3. Placa")
+        print("4. Descrição do Problema")
+        
+        opcao = input("Digite o número da opção desejada: ")
+
+        if opcao == '1':
+            novo_modelo = input("Digite o novo modelo: ")
+            cur.execute("UPDATE VEICULOS SET modelo = :1 WHERE id_veiculo = :2", (novo_modelo, id_veiculo))
+
+        elif opcao == '2':
+            novo_ano = input("Digite o novo ano: ")
+            cur.execute("UPDATE VEICULOS SET ano = :1 WHERE id_veiculo = :2", (novo_ano, id_veiculo))
+
+        elif opcao == '3':
+            nova_placa = input("Digite a nova placa: ")
+            cur.execute("UPDATE VEICULOS SET placa = :1 WHERE id_veiculo = :2", (nova_placa, id_veiculo))
+
+        elif opcao == '4':
+            nova_descricao_problema = input("Digite a nova descrição do problema: ")
+            cur.execute("UPDATE VEICULOS SET descricao_problema = :1 WHERE id_veiculo = :2", (nova_descricao_problema, id_veiculo))
+
+        else:
+            print("Opção inválida! Tente novamente.")
+            return
+
+        # Confirma a alteração
+        connection.commit()
+        print("Veículo alterado com sucesso!")
+
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao alterar veículo: {e}")
     
-    opcao = input("Digite o número da opção desejada: ")
-
-    if opcao == '1':
-        novo_modelo = input("Digite o novo modelo: ")
-        cur.execute("UPDATE VEICULOS SET modelo = :1 WHERE id = :2", (novo_modelo, id_veiculo))
-
-    elif opcao == '2':
-        novo_ano = input("Digite o novo ano: ")
-        cur.execute("UPDATE VEICULOS SET ano = :1 WHERE id = :2", (novo_ano, id_veiculo))
-
-    elif opcao == '3':
-        nova_placa = input("Digite a nova placa: ")
-        cur.execute("UPDATE VEICULOS SET placa = :1 WHERE id = :2", (nova_placa, id_veiculo))
-
-    elif opcao == '4':
-        nova_descricao_problema = input("Digite a nova descrição do problema: ")
-        cur.execute("UPDATE VEICULOS SET descricao_problema = :1 WHERE id = :2", (nova_descricao_problema, id_veiculo))
-
-    else:
-        print("Opção inválida! Tente novamente.")
+    finally:
         cur.close()
         connection.close()
-        return
 
-    connection.commit()
-    print("Veículo alterado com sucesso!")
-
-    cur.close()
-    connection.close()
-
-def excluir_veiculo():
+def excluir_veiculo(id_veiculo):
     connection = conexao()
     cur = connection.cursor()
 
-    id_veiculo = input("Digite o ID do veículo a ser excluído: ")
-    cur.execute("SELECT * FROM VEICULOS WHERE id = :1", (id_veiculo,))
-    resultado = cur.fetchone()
-
-    if resultado:
-        cur.execute("DELETE FROM VEICULOS WHERE id = :1", (id_veiculo,))
+    try:
+        cur.execute("DELETE FROM veiculos WHERE id_veiculo = :1", (id_veiculo,))
         connection.commit()
-        print("Veículo excluído com sucesso!")
-    else:
-        print("Veículo com ID especificado não encontrado.")
 
-    cur.close()
-    connection.close()
+        if cur.rowcount > 0:
+            print(f"Veiculo com ID {id_veiculo} excluído com sucesso!")
+        else:
+            print(f"Nenhum veiculo encontrado com o ID {id_veiculo}.")
+
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao excluir veiculo no banco de dados: {e}")
+    finally:
+        cur.close()
+        connection.close()
+
+        connection.close()
+
 
 
 def consultar_veiculos():
     connection = conexao()
     cur = connection.cursor()
 
-    cur.execute("SELECT * FROM VEICULOS")
-    resultados = cur.fetchall()
+    try:
+        cur.execute("SELECT * FROM veiculos")
+        resultados = cur.fetchall()
 
-    colunas = [desc[0] for desc in cur.description]
+        colunas = [col[0] for col in cur.description]
+        print("\nVeículos cadastrados:")
+        print(f"{' | '.join(colunas)}")  
+        print("-" * 50)
+        
+        for row in resultados:
+            print(" | ".join(str(item).ljust(20) for item in row))  
 
-    print("\nResultados da Consulta de Veículos:")
-    print(f"{' | '.join(colunas)}")  
-    print("-" * 50)  #
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao consultar veículos no banco de dados: {e}")
+    
+    finally:
+        cur.close()  
+        connection.close()  
 
-    for row in resultados:
-        print(f"{' | '.join(map(str, row))}") 
-
-    cur.close()
-    connection.close()
 
 
 # Funções CRUD para oficinas
-def inserir_oficina():
+def inserir_oficina(id_oficina, cep, endereco, nome_oficina, telefone_oficina):
     connection = conexao()
     cur = connection.cursor()
 
-    cep = input("Digite o CEP da oficina: ")
-    endereco = input("Digite o endereço da oficina: ")
-    nome_oficina = input("Digite o nome da oficina: ")
-    telefone_oficina = input("Digite o telefone da oficina: ")
+    try:
+        cur.execute(
+            "INSERT INTO oficinas (id_oficina, cep, endereco, nome_oficina, telefone_oficina) "
+            "VALUES (:1, :2, :3, :4, :5)", 
+            (id_oficina, cep, endereco, nome_oficina, telefone_oficina)
+        )
+        connection.commit()
+        print("Oficina inserida com sucesso!")
 
-    cur.execute("INSERT INTO OFICINAS (cep, endereco, nome_oficina, telefone_oficina) "
-                "VALUES (:1, :2, :3, :4)", 
-                (cep, endereco, nome_oficina, telefone_oficina))
-    connection.commit()
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao inserir oficina: {e}")
+        connection.rollback()  
 
-    print("Oficina inserida com sucesso!")
+    finally:
+        cur.close() 
+        connection.close()  
 
-    cur.close()
-    connection.close()
+    return True
 
 def alterar_oficina():
     connection = conexao()
     cur = connection.cursor()
 
-    id_oficina = input("Digite o ID da oficina a ser alterada: ")
-    
-    # Exibir opções de campos para alterar
-    print("Quais dados você deseja alterar?")
-    print("1. Nome da Oficina")
-    print("2. Endereço")
-    print("3. Telefone")
-    
-    opcao = input("Escolha a opção (1-3): ")
+    try:
+        # Pergunta o ID da oficina que será alterada
+        id_oficina = input("Digite o ID da oficina a ser alterada: ")
 
-    if opcao == '1':
-        novo_nome = input("Digite o novo nome da oficina: ")
-        cur.execute("UPDATE OFICINAS SET nome_oficina = :1 WHERE id = :2", (novo_nome, id_oficina))
-    elif opcao == '2':
-        novo_endereco = input("Digite o novo endereço da oficina: ")
-        cur.execute("UPDATE OFICINAS SET endereco = :1 WHERE id = :2", (novo_endereco, id_oficina))
-    elif opcao == '3':
-        novo_telefone = input("Digite o novo telefone da oficina: ")
-        cur.execute("UPDATE OFICINAS SET telefone_oficina = :1 WHERE id = :2", (novo_telefone, id_oficina))
-    else:
-        print("Opção inválida! Nenhuma alteração foi feita.")
+        # Verifica se a oficina com o ID existe
+        cur.execute("SELECT * FROM OFICINAS WHERE id = :1", (id_oficina,))
+        resultado = cur.fetchone()
+
+        if not resultado:
+            print("Oficina com o ID especificado não encontrada.")
+            return
+
+        # Exibir dados atuais da oficina
+        print("Oficina encontrada:")
+        print(f"ID: {resultado[0]}, Nome: {resultado[1]}, Endereço: {resultado[2]}, Telefone: {resultado[3]}")
+
+        # Exibir opções de campos para alterar
+        print("Quais dados você deseja alterar?")
+        print("1. Nome da Oficina")
+        print("2. Endereço")
+        print("3. Telefone")
+        
+        opcao = input("Escolha a opção (1-3): ")
+
+        if opcao == '1':
+            novo_nome = input("Digite o novo nome da oficina: ")
+            cur.execute("UPDATE OFICINAS SET nome_oficina = :1 WHERE id = :2", (novo_nome, id_oficina))
+        elif opcao == '2':
+            novo_endereco = input("Digite o novo endereço da oficina: ")
+            cur.execute("UPDATE OFICINAS SET endereco = :1 WHERE id = :2", (novo_endereco, id_oficina))
+        elif opcao == '3':
+            novo_telefone = input("Digite o novo telefone da oficina: ")
+            cur.execute("UPDATE OFICINAS SET telefone_oficina = :1 WHERE id = :2", (novo_telefone, id_oficina))
+        else:
+            print("Opção inválida! Nenhuma alteração foi feita.")
+            return
+
+        # Confirma a alteração
+        connection.commit()
+        print("Oficina alterada com sucesso!")
+
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao atualizar o banco de dados: {e}")
+    finally:
         cur.close()
         connection.close()
-        return
-
-    connection.commit()
-    print("Oficina alterada com sucesso!")
-
-    cur.close()
-    connection.close()
 
 
-def excluir_oficina():
+
+
+def excluir_oficina(id_oficina):
     connection = conexao()
     cur = connection.cursor()
 
-    id_oficina = input("Digite o ID da oficina a ser excluída: ")
-
-    # Verificar se a oficina existe
-    cur.execute("SELECT COUNT(*) FROM OFICINAS WHERE id = :1", (id_oficina,))
-    existe = cur.fetchone()[0]
-
-    if existe == 0:
-        print("Nenhuma oficina encontrada com esse ID. Nenhuma exclusão realizada.")
-    else:
-        cur.execute("DELETE FROM OFICINAS WHERE id = :1", (id_oficina,))
+    try:
+        cur.execute("DELETE FROM oficinas WHERE id_oficina = :1", (id_oficina,))
         connection.commit()
-        print("Oficina excluída com sucesso!")
 
-    cur.close()
-    connection.close()
+        if cur.rowcount > 0:
+            print(f"Oficina com ID {id_oficina} excluído com sucesso!")
+        else:
+            print(f"Nenhuma oficina encontrada com o ID {id_oficina}.")
+
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao excluir oficina no banco de dados: {e}")
+    finally:
+        cur.close()
+        connection.close()
 
 
 def consultar_oficinas():
     connection = conexao()
     cur = connection.cursor()
 
-    # Executar a consulta
-    cur.execute("SELECT id, cep, endereco, nome_oficina, telefone_oficina FROM OFICINAS")
-    resultados = cur.fetchall()
+    try:
+        cur.execute("SELECT * FROM OFICINAS")
+        resultados = cur.fetchall()
 
-    print("\nResultados da Consulta de Oficinas:")
-    
-    # Verificar se há resultados
-    if not resultados:
-        print("Nenhuma oficina encontrada.")
-    else:
-
-        print(f"{'ID':<5} {'CEP':<10} {'Endereço':<30} {'Nome da Oficina':<25} {'Telefone':<15}")
-        print("-" * 95)  # Linha de separação
+        colunas = [col[0] for col in cur.description]
+        print("\nVeículos cadastrados:")
+        print(f"{' | '.join(colunas)}")  
+        print("-" * 50)
+        
         for row in resultados:
-            print(f"{row[0]:<5} {row[1]:<10} {row[2]:<30} {row[3]:<25} {row[4]:<15}")
+            print(" | ".join(str(item).ljust(20) for item in row))  
 
-    cur.close()
-    connection.close()
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao consultar oficinas no banco de dados: {e}")
+    
+    finally:
+        cur.close()  
+        connection.close()  
 
 
 # Funções CRUD para funcionários
-def inserir_funcionario():
+def inserir_funcionario(id_funcionario, nome_funcionario, cargo, data_contrata, salario, setor, tempo_empresa):
     connection = conexao()
     cur = connection.cursor()
 
-    nome_funcionario = input("Digite o nome do funcionário: ")
-    cargo = input("Digite o cargo: ")
-    
-    # Solicitando a data de contratação e convertendo para o formato de data do Oracle
-    data_contrata = input("Digite a data de contratação (YYYY-MM-DD): ")
-    data_contrata_formatada = dt.datetime.strptime(data_contrata, '%Y-%m-%d').date()
-    
-    salario = float(input("Digite o salário: "))  # Garantindo que o salário seja um valor numérico
-    setor = input("Digite o setor: ")
-    tempo_empresa = int(input("Digite o tempo de empresa (em anos): "))  # Garantindo que o tempo seja um número inteiro
+    try:
+        cur.execute(
+            "INSERT INTO FUNCIONARIOS (id_funcionario, nome_funcionario, cargo, data_contrata, salario, setor, tempo_empresa) "
+            "VALUES (:1, :2, :3, :4, :5, :6, :7)", 
+            (id_funcionario, nome_funcionario, cargo, data_contrata, salario, setor, tempo_empresa)
+        )
+        connection.commit()
+        print("Funcionário inserido com sucesso!")
 
-    cur.execute("""
-        INSERT INTO FUNCIONARIOS (nome_funcionario, cargo, data_contrata, salario, setor, tempo_empresa) 
-        VALUES (:1, :2, :3, :4, :5, :6)
-    """, 
-    (nome_funcionario, cargo, data_contrata_formatada, salario, setor, tempo_empresa))
-    
-    connection.commit()
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao inserir funcionário: {e}")
+        connection.rollback()  
 
-    print("Funcionário inserido com sucesso!")
+    finally:
+        cur.close()  
+        connection.close()  
 
-
-    cur.close()
-    connection.close()
 
 def alterar_funcionario():
     connection = conexao()
     cur = connection.cursor()
 
-    id_funcionario = input("Digite o ID do funcionário a ser alterado: ")
+    try:
+        id_funcionario = input("Digite o ID do funcionário a ser alterado: ")
 
-    # Verificar se o funcionário existe antes de tentar atualizar
-    cur.execute("SELECT * FROM FUNCIONARIOS WHERE id = :1", (id_funcionario,))
-    funcionario = cur.fetchone()
+        # Verificar se o funcionário existe antes de tentar atualizar
+        cur.execute("SELECT * FROM FUNCIONARIOS WHERE id = :1", (id_funcionario,))
+        funcionario = cur.fetchone()
 
-    if funcionario is None:
-        print("Funcionário não encontrado.")
+        if funcionario is None:
+            print("Funcionário não encontrado.")
+            return
+
+        print("Funcionário encontrado:")
+        print(f"ID: {funcionario[0]}, Nome: {funcionario[1]}, Cargo: {funcionario[2]}, Salário: {funcionario[3]}, Setor: {funcionario[4]}, Tempo de Empresa: {funcionario[5]}")
+
+        print("Quais dados você deseja alterar?")
+        print("1. Nome do Funcionário")
+        print("2. Cargo")
+        print("3. Salário")
+        print("4. Setor")
+        print("5. Tempo de Empresa")
+
+        opcao = input("Escolha a opção (1-5): ")
+
+        if opcao == '1':
+            novo_nome = input("Digite o novo nome do funcionário: ")
+            cur.execute("UPDATE FUNCIONARIOS SET nome_funcionario = :1 WHERE id = :2", (novo_nome, id_funcionario))
+        
+        elif opcao == '2':
+            novo_cargo = input("Digite o novo cargo do funcionário: ")
+            cur.execute("UPDATE FUNCIONARIOS SET cargo = :1 WHERE id = :2", (novo_cargo, id_funcionario))
+        
+        elif opcao == '3':
+            novo_salario = input("Digite o novo salário do funcionário: ")
+            cur.execute("UPDATE FUNCIONARIOS SET salario = :1 WHERE id = :2", (novo_salario, id_funcionario))
+        
+        elif opcao == '4':
+            novo_setor = input("Digite o novo setor do funcionário: ")
+            cur.execute("UPDATE FUNCIONARIOS SET setor = :1 WHERE id = :2", (novo_setor, id_funcionario))
+        
+        elif opcao == '5':
+            novo_tempo_empresa = input("Digite o novo tempo de empresa do funcionário: ")
+            cur.execute("UPDATE FUNCIONARIOS SET tempo_empresa = :1 WHERE id = :2", (novo_tempo_empresa, id_funcionario))
+        
+        else:
+            print("Opção inválida! Nenhuma alteração foi feita.")
+            return
+
+        connection.commit()
+        print("Funcionário alterado com sucesso!")
+
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao atualizar o banco de dados: {e}")
+    finally:
         cur.close()
         connection.close()
-        return
-
-    novo_nome = input("Digite o novo nome do funcionário: ")
-    novo_cargo = input("Digite o novo cargo do funcionário: ")
-    novo_salario = input("Digite o novo salário do funcionário: ")
-    novo_setor = input("Digite o novo setor do funcionário: ")
-    novo_tempo_empresa = input("Digite o novo tempo de empresa do funcionário: ")
-
-    cur.execute("""
-        UPDATE FUNCIONARIOS
-        SET nome_funcionario = :1, cargo = :2, salario = :3, setor = :4, tempo_empresa = :5
-        WHERE id = :6
-    """, (novo_nome, novo_cargo, novo_salario, novo_setor, novo_tempo_empresa, id_funcionario))
-
-    connection.commit()
-
-    print("Funcionário alterado com sucesso!")
-
-    cur.close()
-    connection.close()
 
 
-def excluir_funcionario():
+
+def excluir_funcionario(id_funcionario):
     connection = conexao()
     cur = connection.cursor()
 
-    id_funcionario = input("Digite o ID do funcionário a ser excluído: ")
-
-    # Verificar se o funcionário existe antes de tentar excluir
-    cur.execute("SELECT * FROM FUNCIONARIOS WHERE id = :1", (id_funcionario,))
-    funcionario = cur.fetchone()
-
-    if funcionario is None:
-        print("Funcionário não encontrado.")
-    else:
-        cur.execute("DELETE FROM FUNCIONARIOS WHERE id = :1", (id_funcionario,))
+    try:
+        cur.execute("DELETE FROM veiculos WHERE id_funcionario = :1", (id_funcionario,))
         connection.commit()
-        print("Funcionário excluído com sucesso!")
 
-    cur.close()
-    connection.close()
+        if cur.rowcount > 0:
+            print(f"Funcionário com ID {id_funcionario} excluído com sucesso!")
+        else:
+            print(f"Nenhum funcionário encontrado com o ID {id_funcionario}.")
+
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao excluir funcionário no banco de dados: {e}")
+    finally:
+        cur.close()
+        connection.close()
+
 
 
 def consultar_funcionarios():
     connection = conexao()
     cur = connection.cursor()
 
-    cur.execute("SELECT id, nome_funcionario, cargo, data_contrata, salario, setor, tempo_empresa FROM FUNCIONARIOS")
-    resultados = cur.fetchall()
+    try:
+        cur.execute("SELECT * FROM FUNCIONARIO")
+        resultados = cur.fetchall()
 
-    print("\nResultados da Consulta de Funcionários:")
-    print(f"{'ID':<5} {'Nome':<20} {'Cargo':<15} {'Data Contrata':<12} {'Salário':<10} {'Setor':<10} {'Tempo de Empresa':<15}")
-    print("-" * 95)
+        colunas = [col[0] for col in cur.description]
+        print("\nFuncionários cadastrados:")
+        print(f"{' | '.join(colunas)}")  
+        print("-" * 50)
+        
+        for row in resultados:
+            print(" | ".join(str(item).ljust(20) for item in row))  
 
-    for row in resultados:
-        print(f"{row[0]:<5} {row[1]:<20} {row[2]:<15} {row[3]:<12} {row[4]:<10} {row[5]:<10} {row[6]:<15}")
-
-    cur.close()
-    connection.close()
-
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao consultar funcionario no banco de dados: {e}")
+    
+    finally:
+        cur.close()  
+        connection.close()  
 
 # Funções CRUD para estoque
-def inserir_estoque():
+def inserir_estoque(id_estoque,nome_peca, quantidade, preco, fornecedor):
     connection = conexao()
     cur = connection.cursor()
 
-    nome_produto = input("Digite o nome do produto: ")
-    quantidade = int(input("Digite a quantidade: "))
-    valor_unitario = float(input("Digite o valor unitário: "))
+    try:
+        cur.execute(
+            "INSERT INTO FUNCIONARIOS (id_estoque,nome_peca, quantidade, preco, fornecedor) "
+            "VALUES (:1, :2, :3, :4, :5)", 
+            (id_estoque,nome_peca, quantidade, preco, fornecedor)
+        )
+        connection.commit()
+        print("Estoque inserido com sucesso!")
 
-    cur.execute("""
-        INSERT INTO ESTOQUE (nome_produto, quantidade, valor_unitario) 
-        VALUES (:1, :2, :3)
-    """, 
-    (nome_produto, quantidade, valor_unitario))
-    
-    connection.commit()
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao inserir estoque: {e}")
+        connection.rollback()  
 
-    print("Produto inserido no estoque com sucesso!")
-
-    cur.close()
-    connection.close()
+    finally:
+        cur.close()  
+        connection.close() 
 
 def alterar_estoque():
     connection = conexao()
     cur = connection.cursor()
 
-    id_produto = input("Digite o ID do produto a ser alterado: ")
-    novo_nome_produto = input("Digite o novo nome do produto (deixe em branco para não alterar): ")
-    nova_quantidade = input("Digite a nova quantidade (deixe em branco para não alterar): ")
-    novo_valor_unitario = input("Digite o novo valor unitário (deixe em branco para não alterar): ")
+    try:
+        # Pergunta o ID do produto que será alterado
+        id_produto = input("Digite o ID do produto a ser alterado: ")
 
-    campos_atualizacao = []
-    valores = []
+        # Verifica se o produto com o ID existe
+        cur.execute("SELECT * FROM ESTOQUE WHERE id = :1", (id_produto,))
+        resultado = cur.fetchone()
 
-    if novo_nome_produto:
-        campos_atualizacao.append("nome_produto = :1")
-        valores.append(novo_nome_produto)
+        if not resultado:
+            print("Produto com o ID especificado não encontrado.")
+            return
 
-    if nova_quantidade:
-        campos_atualizacao.append("quantidade = :2")
-        valores.append(nova_quantidade)
+    
+        print("Produto encontrado:")
+        print(f"ID: {resultado[0]}, Nome: {resultado[1]}, Quantidade: {resultado[2]}, Valor Unitário: {resultado[3]}")
 
-    if novo_valor_unitario:
-        campos_atualizacao.append("valor_unitario = :3")
-        valores.append(novo_valor_unitario)
+        
+        print("Selecione o que deseja alterar:")
+        print("1. Nome do Produto")
+        print("2. Quantidade")
+        print("3. Valor Unitário")
+        opcao = input("Escolha a opção que deseja alterar: ")
 
-    # Certifique-se de que pelo menos um campo foi alterado
-    if campos_atualizacao:
-        set_clause = ", ".join(campos_atualizacao)
-        valores.append(id_produto)
-        cur.execute(f"UPDATE ESTOQUE SET {set_clause} WHERE id = :{len(valores)}", tuple(valores))
+        if opcao == '1':
+            novo_nome_produto = input("Digite o novo nome do produto: ")
+            cur.execute("UPDATE ESTOQUE SET nome_produto = :1 WHERE id = :2", (novo_nome_produto, id_produto))
+        
+        elif opcao == '2':
+            nova_quantidade = input("Digite a nova quantidade: ")
+            cur.execute("UPDATE ESTOQUE SET quantidade = :1 WHERE id = :2", (nova_quantidade, id_produto))
+        
+        elif opcao == '3':
+            novo_valor_unitario = input("Digite o novo valor unitário: ")
+            cur.execute("UPDATE ESTOQUE SET valor_unitario = :1 WHERE id = :2", (novo_valor_unitario, id_produto))
+        
+        else:
+            print("Opção inválida! Tente novamente.")
+            return
+
+        # Confirma a alteração
         connection.commit()
         print("Produto alterado no estoque com sucesso!")
-    else:
-        print("Nenhuma alteração foi realizada.")
 
-    cur.close()
-    connection.close()
+    except ValueError:
+        print("Erro: O ID do produto deve ser um número inteiro.")
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao atualizar o banco de dados: {e}")
+    finally:
+        cur.close() 
+        connection.close()  
 
 
-def excluir_estoque():
+
+def excluir_estoque(id_estoque):
     connection = conexao()
     cur = connection.cursor()
 
-    id_produto = input("Digite o ID do produto a ser excluído: ")
-
-    # Verificar se o produto existe antes de excluí-lo
-    cur.execute("SELECT COUNT(*) FROM ESTOQUE WHERE id = :1", (id_produto,))
-    if cur.fetchone()[0] == 0:
-        print("Produto não encontrado. Nenhuma exclusão realizada.")
-    else:
-        cur.execute("DELETE FROM ESTOQUE WHERE id = :1", (id_produto,))
+    try:
+        cur.execute("DELETE FROM veiculos WHERE ID_ESTOQUE = :1", (id_estoque,))
         connection.commit()
-        print("Produto excluído do estoque com sucesso!")
 
-    cur.close()
-    connection.close()
+        if cur.rowcount > 0:
+            print(f"Estoque com ID {id_estoque} excluído com sucesso!")
+        else:
+            print(f"Nenhum estoque encontrado com o ID {id_estoque}.")
+
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao excluir estoque no banco de dados: {e}")
+    finally:
+        cur.close()
+        connection.close()
 
 
 def consultar_estoque():
     connection = conexao()
     cur = connection.cursor()
 
-    cur.execute("SELECT * FROM ESTOQUE")
-    resultados = cur.fetchall()
+    try:
+        cur.execute("SELECT * FROM ESTOQUE")
+        resultados = cur.fetchall()
 
-    print("\nResultados da Consulta:")
-    print("{:<5} {:<20} {:<15} {:<15}".format("ID", "Nome do Produto", "Quantidade", "Valor Unitário"))
-    print("-" * 60)
+        colunas = [col[0] for col in cur.description]
+        print("\Estoque cadastrados:")
+        print(f"{' | '.join(colunas)}")  
+        print("-" * 50)
+        
+        for row in resultados:
+            print(" | ".join(str(item).ljust(20) for item in row))  
+
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao consultar Estoque no banco de dados: {e}")
     
-    for row in resultados:
-        id_produto, nome_produto, quantidade, valor_unitario = row
-        print("{:<5} {:<20} {:<15} {:<15}".format(id_produto, nome_produto, quantidade, valor_unitario))
-
-    cur.close()
-    connection.close()
+    finally:
+        cur.close()  
+        connection.close()  
 
 
 # Funções CRUD para serviços agendados
-def inserir_servico():
+def inserir_servico(id_servico, nome_cliente, nome_funcionario, data_agendamento, veiculo_placa, descricao_servico):
     connection = conexao()
     cur = connection.cursor()
 
     try:
-        # Garantindo que os IDs sejam números inteiros
-        id_cliente = int(input("Digite o ID do cliente: "))
-        id_veiculo = int(input("Digite o ID do veículo: "))
-        id_oficina = int(input("Digite o ID da oficina: "))
-
-        # Solicitando a data do serviço e formatando para o tipo correto
-        data_servico = input("Digite a data do serviço (YYYY-MM-DD): ")
-        data_servico_formatada = dt.datetime.strptime(data_servico, '%Y-%m-%d').date()
-
-        descricao_servico = input("Digite a descrição do serviço: ")
-
-        # Inserindo os dados na tabela SERVIÇOS_AGENDADOS
-        cur.execute("""
-            INSERT INTO SERVICOS_AGENDADOS (id_cliente, id_veiculo, id_oficina, data_servico, descricao_servico) 
-            VALUES (:1, :2, :3, :4, :5)
-        """, 
-        (id_cliente, id_veiculo, id_oficina, data_servico_formatada, descricao_servico))
-        
+        cur.execute(
+            "INSERT INTO FUNCIONARIOS (id_servico, nome_cliente, nome_funcionario, data_agendamento, veiculo_placa, descricao_servico) "
+            "VALUES (:1, :2, :3, :4, :5, :6)", 
+            (id_servico, nome_cliente, nome_funcionario, data_agendamento, veiculo_placa, descricao_servico)
+        )
         connection.commit()
+        print("Serviço inserido com sucesso!")
 
-        print("Serviço agendado com sucesso!")
-    
-    except ValueError:
-        print("Erro: Certifique-se de que os IDs e a data estão corretos.")
     except cx_Oracle.DatabaseError as e:
-        print(f"Erro ao inserir no banco de dados: {e}")
+        print(f"Erro ao inserir serviço: {e}")
+        connection.rollback()  
+
     finally:
-        cur.close()
-        connection.close()
+        cur.close()  
+        connection.close()  
 
 
 def alterar_servico():
     connection = conexao()
     cur = connection.cursor()
 
-    id_servico = input("Digite o ID do serviço a ser alterado: ")
+    try:
+        # Pergunta o ID do serviço que será alterado
+        id_servico = input("Digite o ID do serviço a ser alterado: ")
 
-    # Verifica se o ID do serviço existe
-    cur.execute("SELECT * FROM SERVIÇOS_AGENDADOS WHERE id = :1", (id_servico,))
-    resultado = cur.fetchone()
+        # Verifica se o ID do serviço existe
+        cur.execute("SELECT * FROM SERVIÇOS_AGENDADOS WHERE id = :1", (id_servico,))
+        resultado = cur.fetchone()
 
-    if resultado is None:
-        print("Serviço não encontrado!")
-        cur.close()
-        connection.close()
-        return
+        if resultado is None:
+            print("Serviço não encontrado!")
+            return
 
-    nova_descricao = input("Digite a nova descrição do serviço: ")
+        # Exibir dados atuais do serviço
+        print("Serviço encontrado:")
+        print(f"ID: {resultado[0]}, Descrição: {resultado[1]}")  
 
-    cur.execute("UPDATE SERVIÇOS_AGENDADOS SET descricao_servico = :1 WHERE id = :2", (nova_descricao, id_servico))
-    connection.commit()
+        # Exibir opções de campos para alterar
+        print("Selecione o que deseja alterar:")
+        print("1. Descrição do Serviço")
+        opcao = input("Escolha a opção que deseja alterar: ")
 
-    print("Serviço alterado com sucesso!")
+        if opcao == '1':
+            nova_descricao = input("Digite a nova descrição do serviço: ")
+            
+            cur.execute("UPDATE SERVIÇOS_AGENDADOS SET descricao_servico = :1 WHERE id = :2", (nova_descricao, id_servico))
+            connection.commit()
+            print("Serviço alterado com sucesso!")
+        else:
+            print("Opção inválida! Tente novamente.")
 
-    cur.close()
-    connection.close()
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao atualizar o banco de dados: {e}")
+    finally:
+        cur.close()  
+        connection.close()  
 
 
-def excluir_servico():
+
+def excluir_servico(id_servico):
     connection = conexao()
     cur = connection.cursor()
 
-    id_servico = input("Digite o ID do serviço a ser excluído: ")
-
-    # Verifica se o serviço existe antes de tentar excluir
-    cur.execute("SELECT * FROM SERVIÇOS_AGENDADOS WHERE id = :1", (id_servico,))
-    resultado = cur.fetchone()
-
-    if resultado is None:
-        print("Serviço não encontrado! Verifique o ID e tente novamente.")
-    else:
-        cur.execute("DELETE FROM SERVIÇOS_AGENDADOS WHERE id = :1", (id_servico,))
+    try:
+        cur.execute("DELETE FROM SERVICOS_AGENDADOS WHERE ID_SERVICO = :1", (id_servico,))
         connection.commit()
-        print("Serviço excluído com sucesso!")
 
-    cur.close()
-    connection.close()
+        if cur.rowcount > 0:
+            print(f"Serviço com ID {id_servico} excluído com sucesso!")
+        else:
+            print(f"Nenhum serviço encontrado com o ID {id_servico}.")
+
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao excluir serviço no banco de dados: {e}")
+    finally:
+        cur.close()
+        connection.close()
 
 
 def consultar_servicos():
     connection = conexao()
     cur = connection.cursor()
 
-    # Executa a consulta para buscar todos os serviços agendados
-    cur.execute("SELECT * FROM SERVIÇOS_AGENDADOS")
-    resultados = cur.fetchall()
+    try:
+        cur.execute("SELECT * FROM SERVICOS_AGENDADOS")
+        resultados = cur.fetchall()
 
-    if not resultados:
-        print("Nenhum serviço agendado encontrado.")
-    else:
-        colunas = [desc[0] for desc in cur.description]
-        print("\nResultados da Consulta:")
-        print(", ".join(colunas))
+        colunas = [col[0] for col in cur.description]
+        print("\Serviços cadastrados:")
+        print(f"{' | '.join(colunas)}")  
+        print("-" * 50)
+        
         for row in resultados:
-            print(row)
+            print(" | ".join(str(item).ljust(20) for item in row))  
 
-    cur.close()
-    connection.close()
+    except cx_Oracle.DatabaseError as e:
+        print(f"Erro ao consultar Estoque no banco de dados: {e}")
+    
+    finally:
+        cur.close()  
+        connection.close()  
 
 
 # Função principal para inserir, alterar, excluir e consultar dados

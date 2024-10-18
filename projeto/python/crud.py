@@ -1,4 +1,5 @@
 import datetime as dt
+from banco import *
 
 # Listas para armazenar os dados
 clientes = []
@@ -9,20 +10,19 @@ estoque = []
 servicos_agendados = []
 
 # Funções CRUD para clientes
-def criar_cliente(nome_usuario, nome, email, idade, cpf, telefone, senha):
-    data_cadastro = dt.datetime.now()
+def criar_cliente(id_cliente, nome_usuario, nome, email, idade, cpf, telefone, senha):
     cliente = {
-        "Usuário": nome_usuario,
+        "id_cliente": id_cliente,
+        "Nome_usuario": nome_usuario,
         "Nome": nome,
         "Email": email,
         "Idade": idade,
-        "CPF": cpf,
+        "Cpf": cpf,
         "Telefone": telefone,
-        "Senha": senha,
-        "Data de Cadastro": data_cadastro
+        "Senha": senha
     }
     clientes.append(cliente)
-    return len(clientes)
+    return inserir_cliente(id_cliente, nome_usuario, nome, email, idade, cpf, telefone, senha)
 
 def ler_cliente(indice=-1):
     if 0 <= indice < len(clientes):
@@ -54,18 +54,19 @@ def deletar_cliente(indice):
     return False
 
 # Funções CRUD para veículos
-def criar_veiculo(nome_cliente, modelo, ano, placa, descricao_problema):
+def criar_veiculo(id_veiculo, nome_cliente, modelo, ano, placa, descricao_problema):
     data = dt.datetime.now()
     veiculo = {
+        "ID Veículo": id_veiculo,
         "Nome": nome_cliente,
         "Data": data,
         "Modelo": modelo,
         "Ano": ano,
         "Placa": placa,
-        "Descricao problema": descricao_problema
+        "Descrição problema": descricao_problema
     }
     veiculos.append(veiculo)
-    return len(veiculos)
+    return inserir_veiculo(id_veiculo, nome_cliente, modelo, ano, placa, descricao_problema)
 
 def ler_veiculo(indice=-1):
     if 0 <= indice < len(veiculos):
@@ -98,15 +99,16 @@ def deletar_veiculo(indice):
     return False
 
 # Funções CRUD para oficinas
-def criar_oficina(cep, endereco, nome_oficina, telefone_oficina):
+def criar_oficina(id_oficina,cep, endereco, nome_oficina, telefone_oficina):
     oficina = {
+        "Id_oficina":id_oficina,
         "CEP": cep,
         "Endereço": endereco,
         "Nome da Oficina": nome_oficina,
         "Telefone": telefone_oficina
     }
     oficinas.append(oficina)
-    return len(oficinas)
+    return inserir_oficina(id_oficina,cep, endereco, nome_oficina, telefone_oficina)
 
 def ler_oficina(indice=-1):
     if 0 <= indice < len(oficinas):
@@ -134,8 +136,9 @@ def deletar_oficina(indice):
     return False
 
 # Funções CRUD para funcionários
-def criar_funcionario(nome_funcionario, cargo, data_contrata, salario, setor, tempo_empresa):
+def criar_funcionario(id_funcionario, nome_funcionario, cargo, data_contrata, salario, setor, tempo_empresa):
     funcionario = {
+        "ID Funcionario":id_funcionario,
         "Nome": nome_funcionario,
         "Cargo": cargo,
         "Data de contratação": data_contrata,
@@ -144,7 +147,7 @@ def criar_funcionario(nome_funcionario, cargo, data_contrata, salario, setor, te
         "Tempo de empresa": tempo_empresa
     }
     funcionarios.append(funcionario)
-    return len(funcionarios)
+    return inserir_funcionario(id_funcionario, nome_funcionario, cargo, data_contrata, salario, setor, tempo_empresa)
 
 def ler_funcionario(indice=-1):
     if 0 <= indice < len(funcionarios):
@@ -176,15 +179,16 @@ def deletar_funcionario(indice):
     return False
 
 # Funções para estoque
-def adicionar_peca_estoque(nome_peca, quantidade, preco, fornecedor):
+def adicionar_peca_estoque(id_estoque,nome_peca, quantidade, preco, fornecedor):
     peca = {
+        "ID Estoque":id_estoque,
         "Nome da Peça": nome_peca,
         "Quantidade Disponível": quantidade,
         "Preço Unitário": preco,
         "Fornecedor": fornecedor
     }
     estoque.append(peca)
-    return len(estoque)
+    return inserir_estoque(id_estoque,nome_peca, quantidade, preco, fornecedor)
 
 def ler_estoque(indice=-1):
     if 0 <= indice < len(estoque):
@@ -215,8 +219,9 @@ def deletar_peca_estoque(indice):
     return False
 
 # Funções para serviços agendados
-def agendar_servico(nome_cliente, nome_funcionario, data_agendamento, veiculo_placa, descricao_servico):
+def agendar_servico(id_servico, nome_cliente, nome_funcionario, data_agendamento, veiculo_placa, descricao_servico):
     servico = {
+        "id_servico":id_servico,
         "Nome do Cliente": nome_cliente,
         "Nome do Funcionário": nome_funcionario,
         "Data de Agendamento": data_agendamento,
@@ -224,7 +229,7 @@ def agendar_servico(nome_cliente, nome_funcionario, data_agendamento, veiculo_pl
         "Descrição do Serviço": descricao_servico
     }
     servicos_agendados.append(servico)
-    return len(servicos_agendados)
+    return inserir_servico(id_servico, nome_cliente, nome_funcionario, data_agendamento, veiculo_placa, descricao_servico)
 
 def ler_servico_agendado(indice=-1):
     if 0 <= indice < len(servicos_agendados):
